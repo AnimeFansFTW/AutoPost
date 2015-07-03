@@ -241,5 +241,5 @@ while True:
 			print summary_html + "<br />" + html
 			break
 	cPickle.dump(already_used, open("used_links.pkl", 'w'))
-	time.sleep(1)
+	time.sleep(30)
 	#time.sleep(1 * 60)
