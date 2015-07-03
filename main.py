@@ -37,16 +37,15 @@ def find_mal(anime_name):
 	url = url_api + anime_id
 	soup = scrape_site(url, True)
 	root = soup.getroot()
+	image_links = []
 	for child in root:
-		irit = 0
 		for babu_child in child:
-			if irit == 0:
-				# First one, will have image data
-				for info in babu_child:
-					# Nothing for now. ANN images are terrible
-					pass
 			if babu_child.tag == "info":
 				for keys, values in babu_child.attrib.items():
+					if values == "Picture":
+						for x in babu_child.iter():
+							image_links.append(x.attrib['src'])
+						image_link = image_links[-1]
 					if values == "Main title":
 						global series_name
 						try:
@@ -66,16 +65,20 @@ def find_mal(anime_name):
 						anime_gens.append(str(babu_child.text).title())
 
 					if values == "Plot Summary":
-						summary_html = "<p style=\"text-align: center;\">" + babu_child.text
-			irit += 1
+						if image_link:
+							image_html = "<img src=\"%s\" width=\"225px\" height=\"318px\">" % (image_link)
+						else:
+							image_html = ""
+						summary_html = "<p style=\"text-align: center;\">%s<br />%s" % (image_html, babu_child.text)
 	ann_url = "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=" + anime_id
+	anime_name = anime_name.replace("ō", "o")
 	mal_url = "http://myanimelist.net/anime.php?q=" + \
-			''.join((c for c in unicodedata.normalize('NFD', unicode(anime_name)) if unicodedata.category(c) != 'Mn'))
+	''.join((c for c in unicodedata.normalize('NFD', unicode(anime_name)) if unicodedata.category(c) != 'Mn'))
 	mal_html = "<br /><a href=\"%s\">MAL</a> | <a href=\"%s\">ANN</a>" % (mal_url, ann_url)
-	summary_html += "<br /><strong>Genres:</strong> " + ', '.join(anime_gens) + mal_html.decode("utf-8", "replace") + "</p>"
+	summary_html += "<br /><strong>Genres:</strong> " + \
+			', '.join(anime_gens) + mal_html.decode("utf-8", "replace") + "</p>"
 	summary_html = summary_html.encode('utf-8')
 	return summary_html
-
 
 def html_download_div(filename="filename", links=[]):
 	OtakuShare = ""
@@ -116,7 +119,7 @@ def re_episode_num(filename):
 		  e| - | – |.|x|episode|^		   # e or x or episode or start of a line
 		  )					   # end non-grouping pattern 
 		\s*					   # 0-or-more whitespaces
-		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2}|\d{1})				   # exactly 2/3 digits
+		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2})				   # exactly 2/3 digits
 		''', temp_name)
 	if match:
 		return match.group(1)
@@ -157,91 +160,100 @@ def re_series_name(filename):
 		pass
 	return filename
 
-while True:
-	d = feedparser.parse('http://www.otakubot.org/feed/')
+def main_run():
+	while True:
+		d = feedparser.parse('http://www.otakubot.org/feed/')
 
-	try:
-		already_used = cPickle.load(open('used_links.pkl', 'r'))
-	except:
-		already_used = []
+		try:
+			already_used = cPickle.load(open('used_links.pkl', 'r'))
+		except:
+			already_used = []
 
-	rss_count = 0
-	for a in d.entries:
-		skip = False
-		summary_html = ""
-		file_name = a.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
-		post_id = a.guid.encode('utf-8')
-		html = ""
-		if post_id in already_used:
-			continue
-		magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
-			a.content[0]['value'].decode('utf-8'))
-		download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
-			a.content[0]['value'].decode('utf-8'))
-		download_urls.append(magnet_link)
-		if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
-			download_urls.pop(0)
-		if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
-			download_urls.pop(0)
+		rss_count = 0
+		for a in d.entries:
+			skip = False
+			summary_html = ""
+			file_name = a.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
+			post_id = a.guid.encode('utf-8')
+			html = ""
+			if post_id in already_used:
+				continue
+			magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
+				a.content[0]['value'].decode('utf-8'))
+			download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
+				a.content[0]['value'].decode('utf-8'))
+			download_urls.append(magnet_link)
+			if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
+				download_urls.pop(0)
+			if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
+				download_urls.pop(0)
 
-		count = 0
-		for url in download_urls:
-			if "Go4UP" in url[20:]:
-				download_urls[count] = url.replace("Go4UP", "")
-			elif "Hugefiles" in url[20:]:
-				download_urls[count] = url.replace("Hugefiles", "")
-			elif "Uploaded" in url[20:]:
-				download_urls[count] = url.replace("Uploaded", "")
-			elif "Torrent" in url[20:]:
-				download_urls[count] = url.replace("Torrent", "")
-				download_urls[count + 1] = get_magnet(download_urls[count])
-			count += 1
-		series_name = re_series_name(file_name)
-		episode_num = float(re_episode_num(file_name))
-		if episode_num.is_integer():
-			episode_num = int(episode_num)
-		if not episode_num:
-			# Movie/OVA/ONA
-			# Try looking at MAL first
-			# For now default to movie
-			episode_num = "MOVIE"
-		elif episode_num == 1:
-			summary_html = find_mal(series_name)
-		if series_name == "IGNORE":
-			skip = True
-		if skip != True:
-			html = html_download_div(file_name, download_urls)
-			while series_name == re_series_name(d.entries[rss_count + 1].title.encode('utf-8')) and episode_num == re_episode_num(file_name):
-				next_post = d.entries[rss_count + 1]
-				file_name = next_post.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
-				already_used.append(next_post.guid.encode('utf-8'))
-				download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
-						next_post.content[0]['value'].decode('utf-8'))
-				count = 0
-				for url in download_urls:
-					if "Go4UP" in url[20:]:
-						download_urls[count] = url.replace("Go4UP", "")
-					elif "Hugefiles" in url[20:]:
-						download_urls[count] = url.replace("Hugefiles", "")
-					elif "Uploaded" in url[20:]:
-						download_urls[count] = url.replace("Uploaded", "")
-					elif "Torrent" in url[20:]:
-						download_urls[count] = url.replace("Torrent", "")
-					count += 1
-				html += html_download_div(file_name, download_urls)
-				rss_count += 1
-			if episode_num == "MOVIE":
-				post_title = series_name
-			else:
-				post_title = series_name + " Episode " + str(int(episode_num))
-			already_used.append(post_id)
-			#Not found, create post.
-			#create_post(post_title, series_name, html)
-			print "New Post:"
-			print ''.join((c for c in unicodedata.normalize('NFD', unicode(post_title)) if unicodedata.category(c) != 'Mn'))
-			print "HTML:"
-			print summary_html + "<br />" + html
-			break
-	cPickle.dump(already_used, open("used_links.pkl", 'w'))
-	time.sleep(30)
-	#time.sleep(1 * 60)
+			count = 0
+			for url in download_urls:
+				if "Go4UP" in url[20:]:
+					download_urls[count] = url.replace("Go4UP", "")
+				elif "Hugefiles" in url[20:]:
+					download_urls[count] = url.replace("Hugefiles", "")
+				elif "Uploaded" in url[20:]:
+					download_urls[count] = url.replace("Uploaded", "")
+				elif "Torrent" in url[20:]:
+					download_urls[count] = url.replace("Torrent", "")
+					download_urls[count + 1] = get_magnet(download_urls[count])
+				count += 1
+			series_name = re_series_name(file_name)
+			episode_num = float(re_episode_num(file_name))
+			if episode_num.is_integer():
+				episode_num = int(episode_num)
+			elif "00" in filename:
+				episode_num = 0
+			if not episode_num:
+				# Movie/OVA/ONA
+				# Try looking at MAL first
+				# For now default to movie
+				episode_num = "MOVIE"
+			elif episode_num == 1:
+				summary_html = find_mal(series_name)
+			if series_name == "IGNORE":
+				skip = True
+			if skip != True:
+				html = html_download_div(file_name, download_urls)
+				while series_name == re_series_name(d.entries[rss_count + 1].title.encode('utf-8')) and episode_num == re_episode_num(file_name):
+					next_post = d.entries[rss_count + 1]
+					file_name = next_post.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
+					already_used.append(next_post.guid.encode('utf-8'))
+					download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
+							next_post.content[0]['value'].decode('utf-8'))
+					count = 0
+					for url in download_urls:
+						if "Go4UP" in url[20:]:
+							download_urls[count] = url.replace("Go4UP", "")
+						elif "Hugefiles" in url[20:]:
+							download_urls[count] = url.replace("Hugefiles", "")
+						elif "Uploaded" in url[20:]:
+							download_urls[count] = url.replace("Uploaded", "")
+						elif "Torrent" in url[20:]:
+							download_urls[count] = url.replace("Torrent", "")
+						count += 1
+					html += html_download_div(file_name, download_urls)
+					rss_count += 1
+				if episode_num == "MOVIE":
+					post_title = series_name
+				else:
+					post_title = series_name + " Episode " + str(int(episode_num))
+				already_used.append(post_id)
+				#Not found, create post.
+				#create_post(post_title, series_name, html)
+				print "New Post:"
+				post_title = post_title.replace("ō", "o")
+				print ''.join((c for c in unicodedata.normalize('NFD', unicode(post_title)) if unicodedata.category(c) != 'Mn'))
+				print "HTML:"
+				print summary_html + "<br />" + html
+				break
+		cPickle.dump(already_used, open("used_links.pkl", 'w'))
+		time.sleep(10)
+		#time.sleep(1 * 60)
+
+if __name__ == "__main__":
+	main_run()
+	filename = ""
+	#custom_run("")
