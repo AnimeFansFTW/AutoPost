@@ -17,10 +17,11 @@ def find_mal(anime_name):
 	anime_type = "TV"
 	#####
 	img_html = ""
-	summary_html = "<center><h3><b>Plot Summary</b></h3><br />"
+	summary_html = "<h3 style=\"text-align: center;\"><strong>Plot Summary</strong></h3><br />"
 	anime_gens = []
 	url_api = "http://cdn.animenewsnetwork.com/encyclopedia/api.xml?anime="
 	url = "http://www.animenewsnetwork.com/encyclopedia/search/name?q="
+	orginal = anime_name
 	anime_name = anime_name.replace(" ", "+")
 	url = url + anime_name + "+"
 	soup = scrape_site(url)
@@ -51,6 +52,9 @@ def find_mal(anime_name):
 							print babu_child.text
 							series_name = babu_child.text
 							series_name = series_name.encode('utf-8')
+							line_to_write = orginal + " || " + series_name + " || 0\n"
+							with open('filenames_to_posts.txt', 'a') as name_file:
+								name_file.write(line_to_write)
 						except:
 							# Name has some shit in it, best to keep with original
 							pass
@@ -59,14 +63,15 @@ def find_mal(anime_name):
 						anime_gens.append(str(babu_child.text).title())
 
 					if values == "Plot Summary":
-						summary_html += babu_child.text
+						summary_html = "<p style=\"text-align: center;\">" + babu_child.text
 			irit += 1
 	ann_url = "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=" + anime_id
 	mal_url = "http://myanimelist.net/anime.php?q=" + anime_name
 	mal_html = "<br /><a href=\"%s\">MAL</a> | <a href=\"%s\">ANN</a>" % (mal_url, ann_url)
-	summary_html += "<br /><b>Genres:</b> " + ', '.join(anime_gens) + mal_html + "</center>"
+	summary_html += "<br /><strong>Genres:</strong> " + ', '.join(anime_gens) + mal_html + "</p>"
 	summary_html = summary_html.encode('utf-8')
 	return summary_html
+
 
 def html_download_div(filename="filename", links=[]):
 	OtakuShare = ""
@@ -107,7 +112,7 @@ def re_episode_num(filename):
 		  e| - | – |.|x|episode|^		   # e or x or episode or start of a line
 		  )					   # end non-grouping pattern 
 		\s*					   # 0-or-more whitespaces
-		(\d{3}|\d{2})				   # exactly 2/3 digits
+		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2}|\d{1})				   # exactly 2/3 digits
 		''', temp_name)
 	if match:
 		return match.group(1)
@@ -126,7 +131,7 @@ def re_series_name(filename):
 		filename = filename.replace(".", " ")
 	rep = {".mkv": "", ".mp4": "", ".avi": "",}
 	filename = replace_all(filename, rep)
-	filename = filename.replace(" - ", "").replace(" – ", "")
+	filename = filename.replace(" -", "").replace(" –", "")
 	filename = re.sub(' +', ' ', filename).strip()
 	old_filename = filename
 	title_names = {}
@@ -188,13 +193,15 @@ while True:
 				download_urls[count + 1] = get_magnet(download_urls[count])
 			count += 1
 		series_name = re_series_name(file_name)
-		episode_num = re_episode_num(file_name)
+		episode_num = float(re_episode_num(file_name))
+		if episode_num.is_integer():
+			episode_num = int(episode_num)
 		if not episode_num:
 			# Movie/OVA/ONA
 			# Try looking at MAL first
 			# For now default to movie
 			episode_num = "MOVIE"
-		elif int(episode_num) == 1:
+		elif episode_num == 1:
 			summary_html = find_mal(series_name)
 		if series_name == "IGNORE":
 			skip = True
