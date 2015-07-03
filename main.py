@@ -2,7 +2,7 @@
 from utils import replace_all
 from utils import scrape_site
 import feedparser
-import requests
+#import requests # For another time
 import hashlib
 import cPickle
 #import bencode # For another time
