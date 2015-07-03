@@ -1,2 +1,9 @@
 # AutoPost
-test
+
+### Requarements
+
+feedparser
+
+requests
+
+BeautifulSoup4

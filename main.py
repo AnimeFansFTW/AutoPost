@@ -148,9 +148,6 @@ def re_series_name(filename):
 		pass
 	return filename
 
-
-
-
 while True:
 	d = feedparser.parse('http://www.otakubot.org/feed/')
 
