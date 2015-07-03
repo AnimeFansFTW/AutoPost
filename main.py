@@ -163,19 +163,25 @@ def re_series_name(filename):
 
 def main_run():
 	while True:
-		d = feedparser.parse('http://www.otakubot.org/feed/')
+		rss_urls = ["http://www.otakubot.org/feed/",
+		 "http://www.otakubot.org/feed/?paged=2",
+		 "http://www.otakubot.org/feed/?paged=3"]
 
+		d = []
+		
+		for url in rss_urls:
+			d.extend(feedparser.parse(url).entries)
 		try:
 			already_used = cPickle.load(open('used_links.pkl', 'r'))
 		except:
 			already_used = []
 
 		rss_count = 0
-		for a in d.entries:
+		for a in d:
 			skip = False
 			summary_html = ""
 			file_name = a.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
-			post_id = a.guid.encode('utf-8')
+			post_id = a.link.encode('utf-8')
 			html = ""
 			if post_id in already_used:
 				continue
@@ -218,7 +224,7 @@ def main_run():
 				skip = True
 			if skip != True:
 				html = html_download_div(file_name, download_urls)
-				while series_name == re_series_name(d.entries[rss_count + 1].title.encode('utf-8')) and episode_num == re_episode_num(file_name):
+				while series_name == re_series_name(d[rss_count + 1].title.encode('utf-8')) and episode_num == re_episode_num(file_name):
 					next_post = d.entries[rss_count + 1]
 					file_name = next_post.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
 					already_used.append(next_post.guid.encode('utf-8'))
