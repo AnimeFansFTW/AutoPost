@@ -51,11 +51,12 @@ def find_mal(anime_name):
 						try:
 							series_name = babu_child.text
 							series_name = series_name.encode('utf-8')
-							line_to_write = orginal + " || " + series_name + " || 0\n"
-							file_text = open('filenames_to_posts.txt', 'r').read()
-							if orginal not in file_text:
-								with open('filenames_to_posts.txt', 'a') as name_file:
-									name_file.write(line_to_write)
+							if orginal != series_name:
+								line_to_write = orginal + " || " + series_name + " || 0\n"
+								file_text = open('filenames_to_posts.txt', 'r').read()
+								if orginal not in file_text:
+									with open('filenames_to_posts.txt', 'a') as name_file:
+										name_file.write(line_to_write)
 
 						except:
 							# Name has some shit in it, best to keep with original
