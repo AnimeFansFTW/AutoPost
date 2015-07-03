@@ -49,12 +49,14 @@ def find_mal(anime_name):
 					if values == "Main title":
 						global series_name
 						try:
-							print babu_child.text
 							series_name = babu_child.text
 							series_name = series_name.encode('utf-8')
 							line_to_write = orginal + " || " + series_name + " || 0\n"
-							with open('filenames_to_posts.txt', 'a') as name_file:
-								name_file.write(line_to_write)
+							file_text = open('filenames_to_posts.txt', 'r').read()
+							if orginal not in file_text:
+								with open('filenames_to_posts.txt', 'a') as name_file:
+									name_file.write(line_to_write)
+
 						except:
 							# Name has some shit in it, best to keep with original
 							pass
@@ -68,7 +70,7 @@ def find_mal(anime_name):
 	ann_url = "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=" + anime_id
 	mal_url = "http://myanimelist.net/anime.php?q=" + anime_name
 	mal_html = "<br /><a href=\"%s\">MAL</a> | <a href=\"%s\">ANN</a>" % (mal_url, ann_url)
-	summary_html += "<br /><strong>Genres:</strong> " + ', '.join(anime_gens) + mal_html + "</p>"
+	summary_html += "<br /><strong>Genres:</strong> " + ', '.join(anime_gens) + mal_html.decode("utf-8", "replace") + "</p>"
 	summary_html = summary_html.encode('utf-8')
 	return summary_html
 
@@ -238,7 +240,8 @@ while True:
 			print "HTML:"
 			print summary_html + "<br />" + html
 			break
-
+	raw_input()
+	quit()
 	cPickle.dump(already_used, open("used_links.pkl", 'w'))
 	time.sleep(30)
 	#time.sleep(1 * 60)
