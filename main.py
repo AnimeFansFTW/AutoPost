@@ -1,6 +1,7 @@
 #-*- coding: utf-8 -*-
 from utils import replace_all
 from utils import scrape_site
+import unicodedata
 import feedparser
 #import requests # For another time
 import hashlib
@@ -68,7 +69,8 @@ def find_mal(anime_name):
 						summary_html = "<p style=\"text-align: center;\">" + babu_child.text
 			irit += 1
 	ann_url = "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=" + anime_id
-	mal_url = "http://myanimelist.net/anime.php?q=" + anime_name
+	mal_url = "http://myanimelist.net/anime.php?q=" + \
+			''.join((c for c in unicodedata.normalize('NFD', unicode(anime_name)) if unicodedata.category(c) != 'Mn'))
 	mal_html = "<br /><a href=\"%s\">MAL</a> | <a href=\"%s\">ANN</a>" % (mal_url, ann_url)
 	summary_html += "<br /><strong>Genres:</strong> " + ', '.join(anime_gens) + mal_html.decode("utf-8", "replace") + "</p>"
 	summary_html = summary_html.encode('utf-8')
@@ -236,7 +238,7 @@ while True:
 			#Not found, create post.
 			#create_post(post_title, series_name, html)
 			print "New Post:"
-			print post_title
+			print ''.join((c for c in unicodedata.normalize('NFD', unicode(post_title)) if unicodedata.category(c) != 'Mn'))
 			print "HTML:"
 			print summary_html + "<br />" + html
 			break
