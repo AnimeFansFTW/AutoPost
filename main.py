@@ -30,9 +30,9 @@ def find_mal(anime_name):
 	anime_html = ""
 	for a in a_links:
 		if "encyclopedia/anime.php?id=" in a['href']:
-			if anime_type == "TV" and " (TV)" in str(a):
 				anime_html = a
 				break
+	print url
 	anime_id = anime_html['href'].split("id=")[1]
 	url = url_api + anime_id
 	soup = scrape_site(url, True)
@@ -166,9 +166,7 @@ def main_run():
 		rss_urls = ["http://www.otakubot.org/feed/",
 		 "http://www.otakubot.org/feed/?paged=2",
 		 "http://www.otakubot.org/feed/?paged=3"]
-
 		d = []
-		
 		for url in rss_urls:
 			d.extend(feedparser.parse(url).entries)
 		try:
@@ -257,7 +255,7 @@ def main_run():
 				print summary_html + "<br />" + html
 				break
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
-		time.sleep(10)
+		time.sleep(1)
 		#time.sleep(1 * 60)
 
 if __name__ == "__main__":
