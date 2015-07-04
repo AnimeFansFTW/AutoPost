@@ -255,7 +255,7 @@ def main_run():
 				print summary_html + "<br />" + html
 				break
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
-		time.sleep(1)
+		time.sleep(5)
 		#time.sleep(1 * 60)
 
 if __name__ == "__main__":
