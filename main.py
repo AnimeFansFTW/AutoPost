@@ -52,7 +52,8 @@ def html_download_div(filename="filename", links=[]):
 
 def re_episode_num(filename):
 	rep = {"480p": "", "720p": "", "1080p": "", \
-	"1280×720": "", "": "",}
+	"1280×720": "", "": "", "mkv": "", "mp4": "", "avi": ""}
+	filename = replace_all(filename, rep)
 	if "movie" in filename.lower():
 		return None
 	if "persona" in filename.lower():
@@ -62,7 +63,7 @@ def re_episode_num(filename):
 	match = re.search(
 		r'''(?ix)				 # Ignore case (i), and use verbose regex (x)
 		(?:					   # non-grouping pattern
-		  -|– |0|x|episode|^		   # e or x or episode or start of a line
+		  | - | – |x|episode|^		   # e or x or episode or start of a line
 		  )					   # end non-grouping pattern 
 		\s*					   # 0-or-more whitespaces
 		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2}|\d{1})				   # exactly 2/3 digits
@@ -199,7 +200,7 @@ def main():
 				break
 
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
-		time.sleep(5)
+		time.sleep(20)
 
 if __name__ == "__main__":
 	main()

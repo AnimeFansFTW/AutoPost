@@ -265,6 +265,7 @@ def AnimeNewsNetword_search(query):
 	return [series_name, anime_info[3], html_info(anime_info, "ANN")]
 
 def get_series_info(name):
+	print "Searching info for %s" % name
 	anime_info = MyAnimeList_search(name)
 	if anime_info == []:
 		anime_info = AnimeNewsNetword_search(name)
