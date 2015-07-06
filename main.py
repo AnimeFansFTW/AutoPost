@@ -19,8 +19,7 @@ sys.setdefaultencoding("utf-8")
 
 """ TODO:
 Re-add episode remove/add support.
-Fix the while loop!
-Merge 480p, 720p, 1080p to one HTML print!
+Sort out 1080p, 720p, 480p order for post
 """
 
 def html_download_div(filename="filename", links=[]):
