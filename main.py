@@ -1,7 +1,8 @@
 #-*- coding: utf-8 -*-
+from utils import get_series_info
+from utils import check_new_name
 from utils import replace_all
 from utils import scrape_site
-import unicodedata
 import feedparser
 #import requests # For another time
 import hashlib
@@ -12,74 +13,15 @@ import base64
 import time
 import re
 
-def find_mal(anime_name):
-	# Temp
-	# For support of movies and OVAs later
-	anime_type = "TV"
-	#####
-	img_html = ""
-	summary_html = "<h3 style=\"text-align: center;\"><strong>Plot Summary</strong></h3><br />"
-	anime_gens = []
-	url_api = "http://cdn.animenewsnetwork.com/encyclopedia/api.xml?anime="
-	url = "http://www.animenewsnetwork.com/encyclopedia/search/name?q="
-	orginal = anime_name
-	anime_name = anime_name.replace(" ", "+")
-	url = url + anime_name + "+"
-	soup = scrape_site(url)
-	a_links = soup.findAll('a')
-	anime_html = ""
-	for a in a_links:
-		if "encyclopedia/anime.php?id=" in a['href']:
-				anime_html = a
-				break
-	print url
-	anime_id = anime_html['href'].split("id=")[1]
-	url = url_api + anime_id
-	soup = scrape_site(url, True)
-	root = soup.getroot()
-	image_links = []
-	for child in root:
-		for babu_child in child:
-			if babu_child.tag == "info":
-				for keys, values in babu_child.attrib.items():
-					if values == "Picture":
-						for x in babu_child.iter():
-							image_links.append(x.attrib['src'])
-						image_link = image_links[-1]
-					if values == "Main title":
-						global series_name
-						try:
-							series_name = babu_child.text
-							series_name = series_name.encode('utf-8')
-							if orginal != series_name:
-								line_to_write = orginal + " || " + series_name + " || 0\n"
-								file_text = open('filenames_to_posts.txt', 'r').read()
-								if orginal not in file_text:
-									with open('filenames_to_posts.txt', 'a') as name_file:
-										name_file.write(line_to_write)
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 
-						except:
-							# Name has some shit in it, best to keep with original
-							pass
-
-					if values == "Genres" or values == "Themes":
-						anime_gens.append(str(babu_child.text).title())
-
-					if values == "Plot Summary":
-						if image_link:
-							image_html = "<img src=\"%s\" width=\"225px\" height=\"318px\">" % (image_link)
-						else:
-							image_html = ""
-						summary_html = "<p style=\"text-align: center;\">%s<br />%s" % (image_html, babu_child.text)
-	ann_url = "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=" + anime_id
-	anime_name = anime_name.replace("ō", "o")
-	mal_url = "http://myanimelist.net/anime.php?q=" + \
-	''.join((c for c in unicodedata.normalize('NFD', unicode(anime_name)) if unicodedata.category(c) != 'Mn'))
-	mal_html = "<br /><a href=\"%s\">MAL</a> | <a href=\"%s\">ANN</a>" % (mal_url, ann_url)
-	summary_html += "<br /><strong>Genres:</strong> " + \
-			', '.join(anime_gens) + mal_html.decode("utf-8", "replace") + "</p>"
-	summary_html = summary_html.encode('utf-8')
-	return summary_html
+""" TODO:
+Re-add episode remove/add support.
+Fix the while loop!
+Merge 480p, 720p, 1080p to one HTML print!
+"""
 
 def html_download_div(filename="filename", links=[]):
 	OtakuShare = ""
@@ -112,6 +54,10 @@ def html_download_div(filename="filename", links=[]):
 def re_episode_num(filename):
 	rep = {"480p": "", "720p": "", "1080p": "", \
 	"1280×720": "", "": "",}
+	if "movie" in filename.lower():
+		return None
+	if "persona" in filename.lower():
+		filename = filename[10:]
 	filename = re.sub(r'\[(?:[^\]|]*\|)?([^\]|]*)\]', '', filename).strip()
 	temp_name = replace_all(filename, rep)
 	match = re.search(
@@ -120,7 +66,7 @@ def re_episode_num(filename):
 		  e| - | – |.|x|episode|^		   # e or x or episode or start of a line
 		  )					   # end non-grouping pattern 
 		\s*					   # 0-or-more whitespaces
-		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2})				   # exactly 2/3 digits
+		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2}|\d{1})				   # exactly 2/3 digits
 		''', temp_name)
 	if match:
 		return match.group(1)
@@ -137,31 +83,19 @@ def re_series_name(filename):
 	fullstops = filename.count('.')
 	if fullstops > 1:
 		filename = filename.replace(".", " ")
-	rep = {".mkv": "", ".mp4": "", ".avi": "",}
+	rep = {".mkv": "", ".mp4": "", ".avi": "", " –": ":", " -": ""}
 	filename = replace_all(filename, rep)
-	filename = filename.replace(" -", "").replace(" –", "")
-	filename = re.sub(' +', ' ', filename).strip()
+	if filename[-2] == ":":
+		filename = filename[0:-2]
+	filename = re.sub(' +',' ', filename).strip()
 	old_filename = filename
 	title_names = {}
-	new_names = open("filenames_to_posts.txt", "r").read().splitlines()
-	for line in new_names:
-		line = line.split("||")
-		try:
-			ep_remove = line[2]
-		except:
-			ep_remove = 0
-		title_names[line[0].lower().strip()] = [line[1].lstrip(), ep_remove]
-	try:
-		# Name replacement found
-		filename = title_names[old_filename.lower()][0].strip()
-		global episode_num
-		episode_num = int(episode_num) + int(title_names[old_filename.lower()][1])
-	except:
-		# No name replacement found
-		pass
+	new = check_new_name(filename)
+	if new is not None:
+		filename = new
 	return filename
 
-def main_run():
+def main():
 	while True:
 		rss_urls = ["http://www.otakubot.org/feed/",
 		 "http://www.otakubot.org/feed/?paged=2",
@@ -178,10 +112,11 @@ def main_run():
 		for a in d:
 			skip = False
 			summary_html = ""
-			file_name = a.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
-			post_id = a.link.encode('utf-8')
+			filename = a.title
+			post_id = a.guid
 			html = ""
 			if post_id in already_used:
+				rss_count += 1
 				continue
 			magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
 				a.content[0]['value'].decode('utf-8'))
@@ -205,60 +140,87 @@ def main_run():
 					download_urls[count] = url.replace("Torrent", "")
 					download_urls[count + 1] = get_magnet(download_urls[count])
 				count += 1
-			series_name = re_series_name(file_name)
-			episode_num = float(re_episode_num(file_name))
-			if episode_num.is_integer():
-				episode_num = int(episode_num)
-			elif "00" in filename:
-				episode_num = 0
-			if not episode_num:
-				# Movie/OVA/ONA
-				# Try looking at MAL first
-				# For now default to movie
-				episode_num = "MOVIE"
-			elif episode_num == 1:
-				summary_html = find_mal(series_name)
+			try:
+				episode_num = float(re_episode_num(filename))
+				if (episode_num).is_integer():
+					episode_num = int(episode_num)
+			except:
+				# Movie/OVA
+				pass
+
+			series_name = re_series_name(filename)
+			anime_info = get_series_info(series_name)
+
+			if anime_info[1] == "TV":
+				post_title = series_name + " Episode " + str(episode_num)
+			else:
+				post_title = series_name
+
+			if str(episode_num) == "1":
+				summary_html = anime_info[2]
+			elif episode_num is None:
+				summary_html = anime_info[2]
+
 			if series_name == "IGNORE":
 				skip = True
+
 			if skip != True:
-				html = html_download_div(file_name, download_urls)
-				while series_name == re_series_name(d[rss_count + 1].title.encode('utf-8')) and episode_num == re_episode_num(file_name):
-					next_post = d.entries[rss_count + 1]
-					file_name = next_post.title.encode('utf-8').replace(" mkv", ".mkv").replace(" avi", ".avi").replace(" mp4", ".mp4")
-					already_used.append(next_post.guid.encode('utf-8'))
-					download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
-							next_post.content[0]['value'].decode('utf-8'))
-					count = 0
-					for url in download_urls:
-						if "Go4UP" in url[20:]:
-							download_urls[count] = url.replace("Go4UP", "")
-						elif "Hugefiles" in url[20:]:
-							download_urls[count] = url.replace("Hugefiles", "")
-						elif "Uploaded" in url[20:]:
-							download_urls[count] = url.replace("Uploaded", "")
-						elif "Torrent" in url[20:]:
-							download_urls[count] = url.replace("Torrent", "")
-						count += 1
-					html += html_download_div(file_name, download_urls)
-					rss_count += 1
-				if episode_num == "MOVIE":
-					post_title = series_name
-				else:
-					post_title = series_name + " Episode " + str(int(episode_num))
+				html = html_download_div(filename, download_urls)
+				rss_count += 1
+				try:
+					while str(series_name) == str(re_series_name(d[rss_count].title)) and int(episode_num) == int(re_episode_num(d[rss_count].title)):
+						next_post = d[rss_count]
+						print next_post.title
+						filename = next_post.title
+						already_used.append(next_post.guid)
+						download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
+								next_post.content[0]['value'].decode('utf-8'))
+						count = 0
+						for url in download_urls:
+							if "Go4UP" in url[20:]:
+								download_urls[count] = url.replace("Go4UP", "")
+							elif "Hugefiles" in url[20:]:
+								download_urls[count] = url.replace("Hugefiles", "")
+							elif "Uploaded" in url[20:]:
+								download_urls[count] = url.replace("Uploaded", "")
+							elif "Torrent" in url[20:]:
+								download_urls[count] = url.replace("Torrent", "")
+							count += 1
+						html += html_download_div(filename, download_urls)
+						rss_count += 1
+						time.sleep(5)
+				except:
+					# Feed end
+					pass
+
 				already_used.append(post_id)
-				#Not found, create post.
-				#create_post(post_title, series_name, html)
 				print "New Post:"
-				post_title = post_title.replace("ō", "o")
-				print ''.join((c for c in unicodedata.normalize('NFD', unicode(post_title)) if unicodedata.category(c) != 'Mn'))
+				print post_title
 				print "HTML:"
 				print summary_html + "<br />" + html
 				break
+
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
-		time.sleep(5)
-		#time.sleep(1 * 60)
+		time.sleep(30)
 
 if __name__ == "__main__":
-	main_run()
-	filename = ""
-	#custom_run("")
+	main()
+	# Test stuff under
+	"""
+	test = "[FFF] Classroom Crisis – 01 [C6D2C330].mkv"
+	try:
+		episode_num = float(re_episode_num(test))
+		if (episode_num).is_integer():
+			episode_num = int(episode_num)
+	except:
+		# Movie/OVA
+		pass
+	page_title = re_series_name(test)
+	anime_info = get_series_info(page_title)
+	if anime_info[1] == "TV":
+		post_title = page_title + " Episode " + str(episode_num)
+	else:
+		post_title = page_title
+	print post_title
+	quit()"""
+
