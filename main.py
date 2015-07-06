@@ -63,7 +63,7 @@ def re_episode_num(filename):
 	match = re.search(
 		r'''(?ix)				 # Ignore case (i), and use verbose regex (x)
 		(?:					   # non-grouping pattern
-		  e| - | – |.|x|episode|^		   # e or x or episode or start of a line
+		  -|– |0|x|episode|^		   # e or x or episode or start of a line
 		  )					   # end non-grouping pattern 
 		\s*					   # 0-or-more whitespaces
 		(\d{2}\.\d{1}|\d{1}\.\d{1}|\d{3}|\d{2}|\d{1})				   # exactly 2/3 digits
@@ -170,7 +170,6 @@ def main():
 				try:
 					while str(series_name) == str(re_series_name(d[rss_count].title)) and int(episode_num) == int(re_episode_num(d[rss_count].title)):
 						next_post = d[rss_count]
-						print next_post.title
 						filename = next_post.title
 						already_used.append(next_post.guid)
 						download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
@@ -201,7 +200,7 @@ def main():
 				break
 
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
-		time.sleep(30)
+		time.sleep(5)
 
 if __name__ == "__main__":
 	main()
