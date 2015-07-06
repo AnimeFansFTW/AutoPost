@@ -82,7 +82,7 @@ def re_series_name(filename):
 	fullstops = filename.count('.')
 	if fullstops > 1:
 		filename = filename.replace(".", " ")
-	rep = {".mkv": "", ".mp4": "", ".avi": "", " –": ":", " -": ""}
+	rep = {"mkv": "", "mp4": "", "avi": "", " –": ":", " -": ""}
 	filename = replace_all(filename, rep)
 	if filename[-2] == ":":
 		filename = filename[0:-2]
