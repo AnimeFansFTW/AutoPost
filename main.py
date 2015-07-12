@@ -27,9 +27,6 @@ def main():
 
 		rss_count = 0
 		for a in d:
-			if rss_count == 0:
-				rss_count += 1
-				continue
 			skip = False
 			summary_html = ""
 			post_id = a.guid
