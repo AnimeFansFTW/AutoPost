@@ -154,7 +154,9 @@ def store_html(series_name, episode_number, video_rez, group, html):
 	for html_file in onlyfiles:
 		if html_file.startswith(search_name):
 			found_files.append(html_file)
+
 	found_files = list(reversed(natsorted(found_files)))
+	print found_files
 	filename = "{0} - {1} [{2}] [{3}].html".format(series_name, episode_number, video_rez, group)
 	if filename not in found_files:
 		path = os.path.join("html", filename)
