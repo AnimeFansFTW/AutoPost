@@ -34,8 +34,11 @@ def main():
 			if post_id in already_used:
 				rss_count += 1
 				continue
-			video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
-				a.content[0]['value'])[0]).split(',')[2].split('×')[1].lstrip()
+			try:
+				video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
+					a.content[0]['value'])[0]).split(',')[2].split('×')[1].lstrip()
+			except:
+				video_rez = "NONE"
 			filename = utils.html_decode(re.findall('Release name: (.*?)\<br />', \
 				a.content[0]['value'])[0])
 			magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
