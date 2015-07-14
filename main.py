@@ -61,7 +61,6 @@ def main():
 					download_urls[count] = url.replace("Uploaded", "")
 				elif "Torrent" in url[20:]:
 					download_urls[count] = url.replace("Torrent", "")
-					download_urls[count + 1] = get_magnet(download_urls[count])
 				count += 1
 
 			episode_number = utils.get_episode_number(filename)
