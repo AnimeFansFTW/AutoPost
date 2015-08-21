@@ -27,78 +27,81 @@ def main():
 
 		rss_count = 0
 		for a in d:
-			skip = False
-			summary_html = ""
-			post_id = a.guid
-			html = ""
-			if post_id in already_used:
-				rss_count += 1
-				continue
-			if DEBUG:
-				already_used.append(post_id)
-				cPickle.dump(already_used, open("used_links.pkl", 'w'))
-				continue
-
 			try:
-				video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
-					a.content[0]['value'])[0]).split(',')[2].split('×')[1].lstrip()
+				skip = False
+				summary_html = ""
+				post_id = a.guid
+				html = ""
+				if post_id in already_used:
+					rss_count += 1
+					continue
+				if DEBUG:
+					already_used.append(post_id)
+					cPickle.dump(already_used, open("used_links.pkl", 'w'))
+					continue
+	
+				try:
+					video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
+						a.content[0]['value'])[0]).split(',')[2].split('×')[1].lstrip()
+				except:
+					video_rez = "NONE"
+				filename = utils.html_decode(re.findall('Release name: (.*?)\<br />', \
+					a.content[0]['value'])[0])
+				magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
+					a.content[0]['value'])
+				download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
+					a.content[0]['value'])
+				download_urls.append(magnet_link)
+				if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
+					download_urls.pop(0)
+				if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
+					download_urls.pop(0)
+	
+				count = 0
+				for url in download_urls:
+					if "Go4UP" in url[20:]:
+						download_urls[count] = url.replace("Go4UP", "")
+					elif "Hugefiles" in url[20:]:
+						download_urls[count] = url.replace("Hugefiles", "")
+					elif "Uploaded" in url[20:]:
+						download_urls[count] = url.replace("Uploaded", "")
+					elif "Torrent" in url[20:]:
+						download_urls[count] = url.replace("Torrent", "")
+					count += 1
+	
+				episode_number = utils.get_episode_number(filename)
+				series_name = utils.get_new_name(utils.get_series_name(filename, episode_number))
+				if series_name == "SKIP":
+					continue
+				episode_number = episode_number + utils.get_remove_ep(series_name)
+	
+				if episode_number == utils.get_last_ep(series_name):
+					# Is last episode
+					post_title = "{0} Episode {1} Final".format(series_name, episode_number)
+				elif not episode_number:
+					# Is movie/ova
+					post_title = "{0}".format(series_name)
+				else:
+					# Is normal episode
+					post_title = "{0} Episode {1}".format(series_name, episode_number)
+				# CHANGE TO 1
+				if episode_number <= 1 or not episode_number:
+					# New series
+					if not utils.get_if_stored(series_name):
+						utils.get_series_info(series_name)
+	
+				html = utils.html_download_div(series_name, episode_number, video_rez, \
+						filename, download_urls)
+	
+				print "New Post:"
+				print post_title
+				print
+				print "HTML:"
+				print html
+				already_used.append(post_id)
+				break
 			except:
-				video_rez = "NONE"
-			filename = utils.html_decode(re.findall('Release name: (.*?)\<br />', \
-				a.content[0]['value'])[0])
-			magnet_link = re.findall('(magnet:\?xt=[^\"<]*)', \
-				a.content[0]['value'])
-			download_urls = re.findall('<a href="?\'?([^"\'>]*)', \
-				a.content[0]['value'])
-			download_urls.append(magnet_link)
-			if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
-				download_urls.pop(0)
-			if "otakubot" in download_urls[0] or "zupimages" in download_urls[0]:
-				download_urls.pop(0)
-
-			count = 0
-			for url in download_urls:
-				if "Go4UP" in url[20:]:
-					download_urls[count] = url.replace("Go4UP", "")
-				elif "Hugefiles" in url[20:]:
-					download_urls[count] = url.replace("Hugefiles", "")
-				elif "Uploaded" in url[20:]:
-					download_urls[count] = url.replace("Uploaded", "")
-				elif "Torrent" in url[20:]:
-					download_urls[count] = url.replace("Torrent", "")
-				count += 1
-
-			episode_number = utils.get_episode_number(filename)
-			series_name = utils.get_new_name(utils.get_series_name(filename, episode_number))
-			if series_name == "SKIP":
-				continue
-			episode_number = episode_number + utils.get_remove_ep(series_name)
-
-			if episode_number == utils.get_last_ep(series_name):
-				# Is last episode
-				post_title = "{0} Episode {1} Final".format(series_name, episode_number)
-			elif not episode_number:
-				# Is movie/ova
-				post_title = "{0}".format(series_name)
-			else:
-				# Is normal episode
-				post_title = "{0} Episode {1}".format(series_name, episode_number)
-			# CHANGE TO 1
-			if episode_number <= 1 or not episode_number:
-				# New series
-				if not utils.get_if_stored(series_name):
-					utils.get_series_info(series_name)
-
-			html = utils.html_download_div(series_name, episode_number, video_rez, \
-					filename, download_urls)
-
-			print "New Post:"
-			print post_title
-			print
-			print "HTML:"
-			print html
-			already_used.append(post_id)
-			break
+				print("~@~@~@~@~@~@error@~@~@~@~@~@~")
 
 		cPickle.dump(already_used, open("used_links.pkl", 'w'))
 		time.sleep(15)
