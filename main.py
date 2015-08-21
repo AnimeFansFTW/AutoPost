@@ -37,6 +37,7 @@ def main():
 			if DEBUG:
 				already_used.append(post_id)
 				cPickle.dump(already_used, open("used_links.pkl", 'w'))
+				continue
 
 			try:
 				video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
