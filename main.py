@@ -11,7 +11,7 @@ import re
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
-
+DEBUG = False
 def main():
 	while True:
 		rss_urls = ["http://www.otakubot.org/feed/",
@@ -34,6 +34,10 @@ def main():
 			if post_id in already_used:
 				rss_count += 1
 				continue
+			if DEBUG:
+				already_used.append(post_id)
+				cPickle.dump(already_used, open("used_links.pkl", 'w'))
+
 			try:
 				video_rez = utils.html_decode(re.findall('Video: (.*?)\<br />', \
 					a.content[0]['value'])[0]).split(',')[2].split('×')[1].lstrip()
